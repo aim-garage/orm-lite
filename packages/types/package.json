@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prebuild": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
