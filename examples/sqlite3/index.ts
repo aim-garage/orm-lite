@@ -12,8 +12,15 @@ async function main() {
 
   // through LINQ Queryable
   console.log("--- LINQ Queryable ---");
-  const linqQuery = ormLiteDb.User.where({ age: { gt: 22, lt: 28 } }).select().toSql();
+  const query = ormLiteDb.User
+    .where({ age: { gt: 22, lt: 38 } })
+    .select();
+
+  const linqQuery = query.toSql();
   console.log(linqQuery);
+  const result = await query.toList();
+  console.log(result);
+
   // const linqQuery = ormLiteDb.User
   // .where({ age: { gte: 21 } })
   // .select(["id", "name", "age"])
