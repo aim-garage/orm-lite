@@ -1,5 +1,51 @@
 import { AndExpression, CompiledQuery, EntityMeta, NotExpression, OrderExpression, OrExpression, QueryCompiler, QueryState, SelectExpression, WhereExpression } from "@orm-lite/types";
-// import { Select, Where } from "./sql.types";
+
+type OperatorHandler = (
+    column: string,
+    value: unknown,
+    params: unknown[],
+) => string;
+
+const OPERATORS: Record<string, OperatorHandler> = {
+    eq: (col, val, params) => {
+        if (val === null) return `${col} IS NULL`;
+        params.push(val);
+        return `${col} = ?`;
+    },
+    ne: (col, val, params) => {
+        if (val === null) return `${col} IS NOT NULL`;
+        params.push(val);
+        return `${col} <> ?`;
+    },
+    gt: (col, val, params) => (params.push(val), `${col} > ?`),
+    gte: (col, val, params) => (params.push(val), `${col} >= ?`),
+    lt: (col, val, params) => (params.push(val), `${col} < ?`),
+    lte: (col, val, params) => (params.push(val), `${col} <= ?`),
+    in: (col, val, params) => {
+        if (!Array.isArray(val)) throw new Error("in requires an array.");
+        if (val.length === 0) return "1 = 0";
+        params.push(...val);
+        return `${col} IN (${val.map(() => "?").join(", ")})`;
+    },
+    notIn: (col, val, params) => {
+        if (!Array.isArray(val)) throw new Error("notIn requires an array.");
+        if (val.length === 0) return "1 = 1";
+        params.push(...val);
+        return `${col} NOT IN (${val.map(() => "?").join(", ")})`;
+    },
+    between: (col, val, params) => {
+        if (!Array.isArray(val) || val.length !== 2) {
+            throw new Error("between requires exactly two values.");
+        }
+        params.push(val[0], val[1]);
+        return `${col} BETWEEN ? AND ?`;
+    },
+    contains: (col, val, params) => (params.push(`%${String(val)}%`), `${col} LIKE ?`),
+    startsWith: (col, val, params) => (params.push(`${String(val)}%`), `${col} LIKE ?`),
+    endsWith: (col, val, params) => (params.push(`%${String(val)}`), `${col} LIKE ?`),
+    isNull: (col, val) => (val ? `${col} IS NULL` : `${col} IS NOT NULL`),
+    isNotNull: (col, val) => (val ? `${col} IS NOT NULL` : `${col} IS NULL`),
+};
 
 export class SqlQueryCompiler implements QueryCompiler {
     compileCreateTable(
@@ -177,7 +223,7 @@ export class SqlQueryCompiler implements QueryCompiler {
             );
 
             if (order) {
-                sql += order;
+                sql += ` ${order}`;
             }
         }
 
@@ -403,133 +449,6 @@ export class SqlQueryCompiler implements QueryCompiler {
         expression: WhereExpression<T>,
         params: unknown[],
     ): string {
-        // const parts: string[] = [];
-
-        // /*
-        //  * Field conditions
-        //  *
-        //  * {
-        //  *   age: { gte: 21 },
-        //  *   active: { eq: true }
-        //  * }
-        //  */
-        // for (const [property, condition] of Object.entries(
-        //     expression,
-        // )) {
-        //     if (
-        //         property === "and" ||
-        //         property === "or" ||
-        //         property === "not"
-        //     ) {
-        //         continue;
-        //     }
-
-        //     if (condition === undefined) {
-        //         continue;
-        //     }
-
-        //     const column = this.getColumn(
-        //         metadata,
-        //         property,
-        //     );
-
-        //     const sql = this.compileFieldCondition(
-        //         column.name,
-        //         condition as Record<string, unknown>,
-        //         params,
-        //     );
-
-        //     if (sql) {
-        //         parts.push(sql);
-        //     }
-        // }
-
-        // /*
-        //  * AND
-        //  *
-        //  * {
-        //  *   and: [
-        //  *     { age: { gte: 18 } },
-        //  *     { active: { eq: true } }
-        //  *   ]
-        //  * }
-        //  */
-        // if (expression.and) {
-        //     const expressions: string[] = expression.and
-        //         .map((item: Where<any>) =>
-        //             this.compileWhere(
-        //                 metadata,
-        //                 item,
-        //                 params,
-        //             ),
-        //         )
-        //         .filter(
-        //             (sql: string | undefined): sql is string => Boolean(sql),
-        //         );
-
-        //     if (expressions.length > 0) {
-        //         parts.push(
-        //             `(${expressions.join(" AND ")})`,
-        //         );
-        //     }
-        // }
-
-        // /*
-        //  * OR
-        //  *
-        //  * {
-        //  *   or: [
-        //  *     { role: { eq: "admin" } },
-        //  *     { role: { eq: "manager" } }
-        //  *   ]
-        //  * }
-        //  */
-        // if (expression.or) {
-        //     const expressions: string[] = expression.or
-        //         .map((item: Where<any>) =>
-        //             this.compileWhere(
-        //                 metadata,
-        //                 item,
-        //                 params,
-        //             ),
-        //         )
-        //         .filter(
-        //             (sql: string | undefined): sql is string =>
-        //                 Boolean(sql),
-        //         );
-
-        //     if (expressions.length > 0) {
-        //         parts.push(
-        //             `(${expressions.join(" OR ")})`,
-        //         );
-        //     }
-        // }
-
-        // /*
-        //  * NOT
-        //  *
-        //  * {
-        //  *   not: {
-        //  *     active: { eq: true }
-        //  *   }
-        //  * }
-        //  */
-        // if (expression.not) {
-        //     const inner = this.compileWhere(
-        //         metadata,
-        //         expression.not,
-        //         params,
-        //     );
-
-        //     if (inner) {
-        //         parts.push(`NOT (${inner})`);
-        //     }
-        // }
-
-        // /*
-        //  * All properties at the same level are ANDed.
-        //  */
-        // return parts.join(" AND ");
         const parts: string[] = [];
 
         // ----------------------------------------------------------
@@ -658,193 +577,36 @@ export class SqlQueryCompiler implements QueryCompiler {
 
     private compileFieldCondition(
         columnName: string,
-        condition: Record<string, unknown>,
+        condition: unknown,
         params: unknown[],
     ): string {
-        const column = this.quoteIdentifier(
-            columnName,
-        );
+        const column = this.quoteIdentifier(columnName);
+
+        if (condition === null) {
+            return `${column} IS NULL`;
+        }
+
+        if (typeof condition !== "object") {
+            params.push(condition);
+            return `${column} = ?`;
+        }
 
         const parts: string[] = [];
 
         for (const [operator, value] of Object.entries(
-            condition,
+            condition as Record<string, unknown>,
         )) {
-            switch (operator) {
-                // -----------------------------------------------
-                // Equality
-                // -----------------------------------------------
-
-                case "eq":
-                    if (value === null) {
-                        parts.push(`${column} IS NULL`);
-                    } else {
-                        parts.push(`${column} = ?`);
-                        params.push(value);
-                    }
-                    break;
-
-                case "ne":
-                    if (value === null) {
-                        parts.push(`${column} IS NOT NULL`);
-                    } else {
-                        parts.push(`${column} <> ?`);
-                        params.push(value);
-                    }
-                    break;
-
-                // -----------------------------------------------
-                // Comparison
-                // -----------------------------------------------
-
-                case "gt":
-                    parts.push(`${column} > ?`);
-                    params.push(value);
-                    break;
-
-                case "gte":
-                    parts.push(`${column} >= ?`);
-                    params.push(value);
-                    break;
-
-                case "lt":
-                    parts.push(`${column} < ?`);
-                    params.push(value);
-                    break;
-
-                case "lte":
-                    parts.push(`${column} <= ?`);
-                    params.push(value);
-                    break;
-
-                // -----------------------------------------------
-                // IN
-                // -----------------------------------------------
-
-                case "in": {
-                    const values = this.requireArray(
-                        value,
-                        "in",
-                    );
-
-                    if (values.length === 0) {
-                        parts.push("1 = 0");
-                        break;
-                    }
-
-                    const placeholders = values
-                        .map(() => "?")
-                        .join(", ");
-
-                    parts.push(
-                        `${column} IN (${placeholders})`,
-                    );
-
-                    params.push(...values);
-
-                    break;
-                }
-
-                case "notIn": {
-                    const values = this.requireArray(
-                        value,
-                        "notIn",
-                    );
-
-                    if (values.length === 0) {
-                        parts.push("1 = 1");
-                        break;
-                    }
-
-                    const placeholders = values
-                        .map(() => "?")
-                        .join(", ");
-
-                    parts.push(
-                        `${column} NOT IN (${placeholders})`,
-                    );
-
-                    params.push(...values);
-
-                    break;
-                }
-
-                // -----------------------------------------------
-                // BETWEEN
-                // -----------------------------------------------
-
-                case "between": {
-                    if (
-                        !Array.isArray(value) ||
-                        value.length !== 2
-                    ) {
-                        throw new Error(
-                            "between requires exactly two values.",
-                        );
-                    }
-
-                    parts.push(
-                        `${column} BETWEEN ? AND ?`,
-                    );
-
-                    params.push(value[0], value[1]);
-
-                    break;
-                }
-
-                // -----------------------------------------------
-                // String operators
-                // -----------------------------------------------
-
-                case "contains":
-                    parts.push(
-                        `${column} LIKE ?`,
-                    );
-
-                    params.push(`%${String(value)}%`);
-                    break;
-
-                case "startsWith":
-                    parts.push(
-                        `${column} LIKE ?`,
-                    );
-
-                    params.push(`${String(value)}%`);
-                    break;
-
-                case "endsWith":
-                    parts.push(
-                        `${column} LIKE ?`,
-                    );
-
-                    params.push(`%${String(value)}`);
-                    break;
-
-                // -----------------------------------------------
-                // NULL
-                // -----------------------------------------------
-
-                case "isNull":
-                    if (value) {
-                        parts.push(`${column} IS NULL`);
-                    } else {
-                        parts.push(`${column} IS NOT NULL`);
-                    }
-                    break;
-
-                case "isNotNull":
-                    if (value) {
-                        parts.push(`${column} IS NOT NULL`);
-                    } else {
-                        parts.push(`${column} IS NULL`);
-                    }
-                    break;
-
-                default:
-                    throw new Error(
-                        `Unsupported where operator "${operator}".`,
-                    );
+            const handler = OPERATORS[operator];
+            if (!handler) {
+                throw new Error(
+                    `Unsupported where operator "${operator}".`,
+                );
             }
+            parts.push(handler(column, value, params));
+        }
+
+        if (parts.length === 0) {
+            return "";
         }
 
         if (parts.length === 1) {
@@ -916,22 +678,7 @@ export class SqlQueryCompiler implements QueryCompiler {
         return `"${identifier.replace(/"/g, '""')}"`;
     }
 
-    // =========================================================
-    // Validation
-    // =========================================================
 
-    private requireArray(
-        value: unknown,
-        operator: string,
-    ): unknown[] {
-        if (!Array.isArray(value)) {
-            throw new Error(
-                `${operator} requires an array.`,
-            );
-        }
-
-        return value;
-    }
 
     private isAndExpression<T>(
         expression: WhereExpression<T>,

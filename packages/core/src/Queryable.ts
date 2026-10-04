@@ -1,5 +1,6 @@
-import { CompiledQuery, DatabaseDriver, EntityMeta, OrderExpression, QueryState, SelectExpression, SelectResult } from "@orm-lite/types";
-import { WhereExpression } from '@orm-lite/types';
+import { CompiledQuery, DatabaseDriver, EntityMeta, OrderExpression, QueryState, SelectExpression, SelectResult, WhereExpression } from "@orm-lite/types";
+
+const tableSyncRegistry = new WeakMap<EntityMeta, Promise<void>>();
 
 export class Queryable<TEntity, TResult = TEntity> {
   constructor(
@@ -7,6 +8,20 @@ export class Queryable<TEntity, TResult = TEntity> {
     readonly metadata: EntityMeta,
     private readonly state: QueryState<TEntity> = {},
   ) {
+  }
+
+  async ensureTable(): Promise<void> {
+    if (!this.metadata.createTable) return;
+
+    let syncPromise = tableSyncRegistry.get(this.metadata);
+    if (!syncPromise) {
+      syncPromise = (async () => {
+        const query = this.driver.compiler.compileCreateTable(this.metadata);
+        await this.driver.exec(query.sql);
+      })();
+      tableSyncRegistry.set(this.metadata, syncPromise);
+    }
+    return syncPromise;
   }
 
   where(
@@ -62,7 +77,8 @@ export class Queryable<TEntity, TResult = TEntity> {
     );
   }
 
-  toList(): Promise<TResult[]> {
+  async toList(): Promise<TResult[]> {
+    // await this.ensureTable();
     const { sql, params } = this.driver.compiler.compileSelect(
       this.metadata,
       this.state,
@@ -70,10 +86,14 @@ export class Queryable<TEntity, TResult = TEntity> {
     return this.driver.all<TResult>(sql, params);
   }
 
-  first(): Promise<TResult | undefined> {
+  async first(): Promise<TResult | undefined> {
+    // await this.ensureTable();
     const { sql, params } = this.driver.compiler.compileSelect(
       this.metadata,
-      this.state,
+      {
+        ...this.state,
+        limit: 1,
+      },
     );
     return this.driver.get<TResult>(sql, params);
   }
