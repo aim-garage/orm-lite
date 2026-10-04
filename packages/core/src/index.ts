@@ -1,2 +1,2 @@
 export { OrmLiteDatabase } from "./OrmLiteDatabase";
-export { Entity, Column } from "./Decorators";
+export { Entity, Column, Virtual } from "./Decorators";
