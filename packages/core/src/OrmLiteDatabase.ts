@@ -12,27 +12,13 @@ class DatabaseBase<TEntities extends Record<string, EntityClass<any>>> {
   ) {
     return new Proxy(this, {
       get: (target, prop, receiver) => {
-        // DatabaseBase properties/methods
-        if (
-          typeof prop === "string" &&
-          prop in target
-        ) {
-          const value = Reflect.get(
-            target,
-            prop,
-            receiver,
-          );
-
-          return typeof value === "function"
-            ? value.bind(target)
-            : value;
+        // If property exists on DatabaseBase (instance or prototype), access directly without binding
+        if (typeof prop !== "string" || prop in target) {
+          return Reflect.get(target, prop, receiver);
         }
 
-        // Entity repository
-        if (
-          typeof prop === "string" &&
-          prop in target.entities
-        ) {
+        // Entity repository lookup
+        if (prop in target.entities) {
           const key = prop as Extract<keyof TEntities, string>;
 
           let repository = target.repositoryCache.get(key);
@@ -43,7 +29,7 @@ class DatabaseBase<TEntities extends Record<string, EntityClass<any>>> {
 
             repository = new Repository(
               target.connection,
-              metadata
+              metadata,
             );
 
             target.repositoryCache.set(key, repository);
@@ -51,6 +37,7 @@ class DatabaseBase<TEntities extends Record<string, EntityClass<any>>> {
 
           return repository;
         }
+
         return Reflect.get(
           target,
           prop,
@@ -80,6 +67,14 @@ class DatabaseBase<TEntities extends Record<string, EntityClass<any>>> {
     //     await repository.syncTable();
     //   }
     // }
+    const promises: Promise<void>[] = [];
+    for (const key of Object.keys(this.entities)) {
+      const repo = (this as any)[key] as Repository<any>;
+      if (repo && typeof repo.syncTable === "function") {
+        promises.push(repo.syncTable());
+      }
+    }
+    await Promise.all(promises);
   }
 
   async close(): Promise<void> {
