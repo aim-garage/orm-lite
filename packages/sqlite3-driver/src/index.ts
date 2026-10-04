@@ -1,1 +1,1 @@
-export * from './Sqlite.Driver';
+export * from './Sqlite3.Driver';
