@@ -62,6 +62,15 @@ export class Queryable<TEntity, TResult = TEntity> {
     return this.driver.all<TResult>(sql, params);
   }
 
+  first(): Promise<TResult | undefined> {
+    const { sql, params } = this.driver.compiler.compileSelect(
+      this.metadata,
+      this.state,
+    );
+    return this.driver.get<TResult>(sql, params);
+  }
+
+
   private clone(
     patch: Partial<QueryState<TEntity>>,
   ): Queryable<TEntity, TResult> {
