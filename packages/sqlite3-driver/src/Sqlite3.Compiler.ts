@@ -55,6 +55,90 @@ export class SqlQueryCompiler implements QueryCompiler {
         };
     };
 
+    compileInsert<T>(
+        metadata: EntityMeta,
+        values: T | T[],
+    ): CompiledQuery {
+        if (!metadata.name) {
+            throw new Error("Table name missing.");
+        }
+
+        const rows = Array.isArray(values)
+            ? values
+            : [values];
+
+        if (rows.length === 0) {
+            throw new Error(
+                "Cannot insert an empty collection.",
+            );
+        }
+
+        const firstRow =
+            rows[0] as Record<string, unknown>;
+
+        const properties =
+            Object.keys(firstRow);
+
+        if (properties.length === 0) {
+            throw new Error(
+                "Cannot insert an empty object.",
+            );
+        }
+
+        const columns = properties.map(
+            (property) =>
+                this.getColumn(
+                    metadata,
+                    property,
+                ),
+        );
+
+        const columnSql = columns
+            .map((column) =>
+                this.quoteIdentifier(column.name),
+            )
+            .join(", ");
+
+        const params: unknown[] = [];
+
+        const valueSql = rows.map(
+            (row) => {
+                const record =
+                    row as Record<string, unknown>;
+
+                // Ensure every row has the same columns.
+                for (const property of properties) {
+                    if (!(property in record)) {
+                        throw new Error(
+                            `Missing property "${property}" ` +
+                            `in bulk insert row.`,
+                        );
+                    }
+                }
+
+                const placeholders =
+                    properties.map((property) => {
+                        params.push(record[property]);
+                        return "?";
+                    });
+
+                return `(${placeholders.join(", ")})`;
+            },
+        );
+
+        const sql =
+            `INSERT INTO ${this.quoteIdentifier(
+                metadata.name,
+            )} ` +
+            `(${columnSql}) VALUES ` +
+            valueSql.join(", ");
+
+        return {
+            sql,
+            params,
+        };
+    }
+
     // =========================================================
     // SELECT
     // =========================================================

@@ -4,7 +4,12 @@ import { CompiledQuery, QueryState } from "./Query";
 export interface QueryCompiler {
     compileCreateTable(
         metadata: EntityMeta,
-    ): CompiledQuery
+    ): CompiledQuery;
+
+    compileInsert<T>(
+        metadata: EntityMeta,
+        values: T | T[],
+    ): CompiledQuery;
 
     compileSelect<T>(
         metadata: EntityMeta,
