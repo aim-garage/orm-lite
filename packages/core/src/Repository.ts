@@ -1,14 +1,16 @@
-import { Repository } from "./repository";
+import { DatabaseDriver, EntityMeta } from "@orm-lite/types";
+import { Queryable } from "./Queryable";
 
-export interface ColumnMeta {
-  property: string;
-  type: string;
-  primary?: boolean;
-}
-
-export interface EntityMeta {
-  tableName?: string;
-  columns?: ColumnMeta[];
+export class Repository<T extends object> extends Queryable<T, T> {
+  constructor(
+    driver: DatabaseDriver,
+    metadata: EntityMeta,
+  ) {
+    super(
+      driver,
+      metadata,
+    );
+  }
 }
 
 export type EntityClass<T extends object = object> = new (...args: any[]) => T;

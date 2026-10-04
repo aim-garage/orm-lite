@@ -7,11 +7,18 @@ const ormLiteDb = new OrmLiteDatabase(dbDriver, { User });
 
 async function main() {
   // direct
-  const directResult = await dbDriver.findAll("SELECT * from Users");
+  const directResult = await dbDriver.all("SELECT * from Users", []);
   console.table(directResult);
-  // through repo
-  const repoResult = await ormLiteDb.User.findAll();
-  console.table(repoResult);
+
+  // through LINQ Queryable
+  console.log("--- LINQ Queryable ---");
+  const linqQuery = ormLiteDb.User.where({ age: { gt: 22, lt: 28 } }).select().toSql();
+  console.log(linqQuery);
+  // const linqQuery = ormLiteDb.User
+  // .where({ age: { gte: 21 } })
+  // .select(["id", "name", "age"])
+  // .orderBy("name", "asc")
+  // .take(5); 
 }
 
 main();

@@ -1,2 +1,2 @@
-export { OrmLiteDatabase } from "./database";
-export { Entity, Column } from "./decorators";
+export { OrmLiteDatabase } from "./OrmLiteDatabase";
+export { Entity, Column } from "./Decorators";
