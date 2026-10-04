@@ -50,7 +50,7 @@ class DatabaseBase<TEntities extends Record<string, EntityClass<any>>> {
 }
 
 // 2. Define the constructor signature that tells TypeScript about the dynamic repository properties
-export type DatabaseType = {
+export type OrmLiteDatabaseType = {
   new <TEntities extends Record<string, EntityClass<any>>>(
     connection: DatabaseDriver,
     entities: TEntities,
@@ -59,7 +59,7 @@ export type DatabaseType = {
 
 // Declaration merging: tells TypeScript that Database instances carry the entity repositories
 // 3. Export as Database
-export const Database = DatabaseBase as unknown as DatabaseType;
+export const OrmLiteDatabase = DatabaseBase as unknown as OrmLiteDatabaseType;
 
-export type Database<T extends Record<string, EntityClass<any>>> =
+export type OrmLiteDatabase<T extends Record<string, EntityClass<any>>> =
   DatabaseBase<T> & EntityRepositories<T>;

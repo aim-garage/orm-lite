@@ -1,22 +1,17 @@
-import { Database } from "@orm-lite/core";
+import { OrmLiteDatabase } from "@orm-lite/core";
 import { User } from "./User";
 import { Sqlite3Driver } from "@orm-lite/sqlite3-driver";
 
-const dbDriver = new Sqlite3Driver("./app.db");
-// const ormLiteDb = new Database(dbDriver, { User });
+const dbDriver = new Sqlite3Driver("data/examples/sqlite3/app.db");
+const ormLiteDb = new OrmLiteDatabase(dbDriver, { User });
 
 async function main() {
-  // get tables
-  const tablesResult = await dbDriver.findAll(
-    "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%';",
-  );
-  console.table(tablesResult);
   // direct
-  // const directResult = await dbDriver.findAll("SELECT * from Users");
-  // console.log(directResult);
+  const directResult = await dbDriver.findAll("SELECT * from Users");
+  console.table(directResult);
   // through repo
-  // const repoResult = await ormLiteDb.User.findAll();
-  // console.log(repoResult);
+  const repoResult = await ormLiteDb.User.findAll();
+  console.table(repoResult);
 }
 
 main();
