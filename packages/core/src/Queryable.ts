@@ -3,8 +3,8 @@ import { WhereExpression } from '@orm-lite/types';
 
 export class Queryable<TEntity, TResult = TEntity> {
   constructor(
-    private readonly driver: DatabaseDriver,
-    private readonly metadata: EntityMeta,
+    readonly driver: DatabaseDriver,
+    readonly metadata: EntityMeta,
     private readonly state: QueryState<TEntity> = {},
   ) {
   }

@@ -10,6 +10,17 @@ export class Repository<T extends object> extends Queryable<T, T> {
       driver,
       metadata,
     );
+    this.syncTable();
+  }
+  async syncTable(): Promise<void> {
+    if (!this.metadata.createTable) return;
+
+    const query =
+      this.driver.compiler.compileCreateTable(
+        this.metadata,
+      );
+    console.log(query);
+    await this.driver.exec(query.sql);
   }
 }
 

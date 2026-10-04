@@ -2,6 +2,59 @@ import { AndExpression, CompiledQuery, EntityMeta, NotExpression, OrExpression, 
 // import { Select, Where } from "./sql.types";
 
 export class SqlQueryCompiler implements QueryCompiler {
+    compileCreateTable(
+        metadata: EntityMeta,
+    ): CompiledQuery {
+        if (!metadata.name) {
+            throw new Error("Table name missing.");
+        }
+
+        if (!metadata.columns?.length) {
+            throw new Error(
+                `No columns defined for table "${metadata.name}".`,
+            );
+        }
+
+        const columns = metadata.columns.map(
+            (column) => {
+
+                let sql =
+                    `${this.quoteIdentifier(column.name)} ${column.type}`;
+
+                if (column.primaryKey) {
+                    sql += " PRIMARY KEY";
+                }
+
+                if (column.unique) {
+                    sql += " UNIQUE";
+                }
+
+                if (!column.nullable) {
+                    sql += " NOT NULL";
+                }
+
+                if (column.default !== undefined) {
+                    sql += " DEFAULT " +
+                        this.compileDefaultValue(
+                            column.default,
+                        );
+                }
+
+                return sql;
+            },
+        );
+
+        const sql =
+            `CREATE TABLE IF NOT EXISTS ` +
+            `${this.quoteIdentifier(metadata.name)} ` +
+            `(${columns.join(", ")})`;
+
+        return {
+            sql,
+            params: [],
+        };
+    };
+
     // =========================================================
     // SELECT
     // =========================================================
@@ -821,6 +874,30 @@ export class SqlQueryCompiler implements QueryCompiler {
             "not" in expression &&
             expression.not !== undefined &&
             typeof expression.not === "object"
+        );
+    }
+    private compileDefaultValue(
+        value: unknown,
+    ): string {
+
+        if (value === null) {
+            return "NULL";
+        }
+
+        if (typeof value === "number") {
+            return String(value);
+        }
+
+        if (typeof value === "boolean") {
+            return value ? "1" : "0";
+        }
+
+        if (typeof value === "string") {
+            return `'${value.replace(/'/g, "''")}'`;
+        }
+
+        throw new Error(
+            `Unsupported default value: ${String(value)}`,
         );
     }
 }

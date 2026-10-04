@@ -2,6 +2,10 @@ import { EntityMeta } from "./Decorators";
 import { CompiledQuery, QueryState } from "./Query";
 
 export interface QueryCompiler {
+    compileCreateTable(
+        metadata: EntityMeta,
+    ): CompiledQuery
+
     compileSelect<T>(
         metadata: EntityMeta,
         state: QueryState<T>,
