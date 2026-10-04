@@ -1,11 +1,11 @@
-import { SelectExpression, WhereExpression } from "./Query.Expressions";
+import { OrderExpression, SelectExpression, WhereExpression } from "./Query.Expressions";
 
 export interface QueryState<T> {
     where?: WhereExpression<T>;
 
     select?: SelectExpression<T>;
 
-    // orderBy?: OrderExpression[];
+    orderBy?: OrderExpression<T>;
 
     limit?: number;
 

@@ -41,6 +41,11 @@ export type SelectExpression<T> = {
     [K in keyof T]?: boolean;
 };
 
+export type OrderDirection = "ASC" | "DESC";
+
+export type OrderExpression<T> = Partial<
+    Record<keyof T, OrderDirection>
+>;
 
 export type SelectResult<
     TEntity,

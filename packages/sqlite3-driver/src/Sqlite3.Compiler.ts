@@ -1,4 +1,4 @@
-import { AndExpression, CompiledQuery, EntityMeta, NotExpression, OrExpression, QueryCompiler, QueryState, SelectExpression, WhereExpression } from "@orm-lite/types";
+import { AndExpression, CompiledQuery, EntityMeta, NotExpression, OrderExpression, OrExpression, QueryCompiler, QueryState, SelectExpression, WhereExpression } from "@orm-lite/types";
 // import { Select, Where } from "./sql.types";
 
 export class SqlQueryCompiler implements QueryCompiler {
@@ -171,23 +171,15 @@ export class SqlQueryCompiler implements QueryCompiler {
             }
         }
 
-        // if (state.orderBy?.length) {
-        //     sql += ` ORDER BY `;
+        if (state.orderBy) {
+            const order = this.compileOrderBy<T>(
+                state.orderBy,
+            );
 
-        //     const orders: string[] = state.orderBy
-        //         .map((order: OrderByExpression) =>
-        //             this.compileOrderBy(
-        //                 metadata,
-        //                 order,
-        //             ),
-        //         )
-        //         .filter(
-        //             (sql: string | undefined): sql is string =>
-        //                 Boolean(sql),
-        //         );
-
-        //     sql += orders.join(", ");
-        // }
+            if (order) {
+                sql += order;
+            }
+        }
 
         if (state.limit !== undefined) {
             sql += ` LIMIT ?`;
@@ -866,23 +858,31 @@ export class SqlQueryCompiler implements QueryCompiler {
     // ORDER BY
     // =========================================================
 
-    // private compileOrderBy(
-    //     metadata: EntityMeta,
-    //     order: OrderByExpression,
-    // ): string {
-    //     const column = this.getColumn(
-    //         metadata,
-    //         order.field,
-    //     );
+    private compileOrderBy<T>(
+        orderBy?: OrderExpression<T>,
+    ): string {
+        if (!orderBy) {
+            return "";
+        }
 
-    //     const direction =
-    //         order.direction.toUpperCase();
+        const columns: string[] = [];
 
-    //     return (
-    //         `${this.quoteIdentifier(column.columnName)} ` +
-    //         direction
-    //     );
-    // }
+        for (const [property, direction] of Object.entries(orderBy)) {
+            if (!direction) {
+                continue;
+            }
+
+            columns.push(
+                `${this.quoteIdentifier(property)} ${direction}`,
+            );
+        }
+
+        if (columns.length === 0) {
+            return "";
+        }
+
+        return `ORDER BY ${columns.join(", ")}`;
+    }
 
     // =========================================================
     // Metadata helpers

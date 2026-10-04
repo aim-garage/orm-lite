@@ -1,7 +1,6 @@
 // import { Column, Entity } from "../lib/db";
 
 import { Column, Entity } from "@orm-lite/core";
-import { Virtual } from "@orm-lite/core/dist/decorators";
 
 @Entity({ name: "Users", createTable: true })
 export class User {
@@ -15,7 +14,7 @@ export class User {
   @Column({ type: "INTEGER" })
   age!: number;
 
-  @Virtual()
+  // @Virtual()
   get isAdult(): boolean {
     return this.age > 24;
   }

@@ -1,4 +1,4 @@
-import { CompiledQuery, DatabaseDriver, EntityMeta, QueryState, SelectExpression, SelectResult } from "@orm-lite/types";
+import { CompiledQuery, DatabaseDriver, EntityMeta, OrderExpression, QueryState, SelectExpression, SelectResult } from "@orm-lite/types";
 import { WhereExpression } from '@orm-lite/types';
 
 export class Queryable<TEntity, TResult = TEntity> {
@@ -45,6 +45,14 @@ export class Queryable<TEntity, TResult = TEntity> {
         select,
       },
     );
+  }
+
+  orderBy<O extends OrderExpression<TEntity>>(
+    orderBy?: O,
+  ): Queryable<TEntity, TResult> {
+    return this.clone({
+      orderBy,
+    });
   }
 
   toSql(): CompiledQuery {
